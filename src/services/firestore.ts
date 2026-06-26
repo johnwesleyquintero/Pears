@@ -166,6 +166,67 @@ class FirestoreService {
     );
   }
 
+  public async getAllUsers(): Promise<User[]> {
+    try {
+      const usersRef = collection(db, COLLECTIONS.USERS);
+      const querySnapshot = await getDocs(usersRef);
+      return querySnapshot.docs.map(doc => docToUser(doc));
+    } catch (error) {
+      console.error('Error getting all users:', error);
+      return [];
+    }
+  }
+
+  public subscribeToAllUsers(callback: (users: User[]) => void): () => void {
+    const usersRef = collection(db, COLLECTIONS.USERS);
+    return onSnapshot(usersRef, 
+      (snapshot) => {
+        const users = snapshot.docs.map(doc => docToUser(doc));
+        callback(users);
+      },
+      (error) => {
+        console.error('Error subscribing to all users:', error);
+        callback([]);
+      }
+    );
+  }
+
+  public async getPostsByUser(userId: string): Promise<Post[]> {
+    try {
+      const postsRef = collection(db, COLLECTIONS.POSTS);
+      const q = query(postsRef, where('UserID', '==', userId), orderBy('CreatedAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      
+      const posts: Post[] = [];
+      for (const docSnap of querySnapshot.docs) {
+        const post = docToPost(docSnap);
+        
+        // Get user info
+        const user = await this.getUser(post.UserID);
+        post.user = user || undefined;
+        
+        // Get likes count
+        const likesRef = collection(db, COLLECTIONS.LIKES);
+        const likesQuery = query(likesRef, where('PostID', '==', post.PostID));
+        const likesSnapshot = await getDocs(likesQuery);
+        post.likesCount = likesSnapshot.size;
+        
+        // Get comments count
+        const commentsRef = collection(db, COLLECTIONS.COMMENTS);
+        const commentsQuery = query(commentsRef, where('PostID', '==', post.PostID));
+        const commentsSnapshot = await getDocs(commentsQuery);
+        post.commentsCount = commentsSnapshot.size;
+        
+        posts.push(post);
+      }
+      
+      return posts;
+    } catch (error) {
+      console.error('Error getting posts by user:', error);
+      return [];
+    }
+  }
+
   // Posts
   public async getPosts(currentUserId?: string): Promise<Post[]> {
     try {
@@ -393,6 +454,29 @@ class FirestoreService {
       console.error('Error subscribing to likes:', error);
       callback(0, false);
     });
+  }
+
+  public async getLikedPosts(userId: string): Promise<Post[]> {
+    try {
+      const likesRef = collection(db, COLLECTIONS.LIKES);
+      const q = query(likesRef, where('UserID', '==', userId));
+      const likesSnapshot = await getDocs(q);
+      
+      const posts: Post[] = [];
+      for (const likeDoc of likesSnapshot.docs) {
+        const likeData = likeDoc.data();
+        const post = await this.getPostById(likeData.PostID);
+        if (post) {
+          post.isLikedByMe = true;
+          posts.push(post);
+        }
+      }
+      
+      return posts;
+    } catch (error) {
+      console.error('Error getting liked posts:', error);
+      return [];
+    }
   }
 
   // Comments

@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { api } from '../../services/api';
+import { firestore } from '../../services/firestore';
 import { X, LogIn, Sparkles, UserCheck } from 'lucide-react';
+import { User } from '../../types';
 
 export const LoginModal: React.FC = () => {
   const { isLoginModalOpen, setLoginModalOpen, loginWithGoogle, switchUser, currentUser } = useAuth();
   const [customName, setCustomName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sampleUsers, setSampleUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    if (isLoginModalOpen) {
+      const loadUsers = async () => {
+        const users = await firestore.getAllUsers();
+        setSampleUsers(users.slice(0, 4));
+      };
+      loadUsers();
+    }
+  }, [isLoginModalOpen]);
 
   if (!isLoginModalOpen) return null;
 
@@ -15,8 +27,6 @@ export const LoginModal: React.FC = () => {
     await loginWithGoogle(customName.trim() || undefined);
     setLoading(false);
   };
-
-  const sampleUsers = api.getUsers();
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
@@ -32,7 +42,7 @@ export const LoginModal: React.FC = () => {
           <img src="/logo.png" alt="Pears Logo" className="w-14 h-14 bg-white rounded-2xl object-cover shadow-lg mb-4 border-2 border-white" />
           <h2 className="text-2xl font-black tracking-tight">Sign in to Pears</h2>
           <p className="text-white/90 text-xs mt-1 leading-relaxed">
-            Lightweight social media platform powered by React + Google Sheets API.
+            Lightweight social media platform powered by React + Firebase Firestore.
           </p>
         </div>
 
@@ -70,7 +80,7 @@ export const LoginModal: React.FC = () => {
 
           {/* Quick Creator Switcher */}
           <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-            {sampleUsers.slice(0, 4).map((usr) => {
+            {sampleUsers.map((usr) => {
               const active = currentUser?.UserID === usr.UserID;
               return (
                 <button

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Post, User, Notification, Comment, AppsScriptConfig } from '../types';
-import { api } from '../services/api';
+import { firestore } from '../services/firestore';
 import { useAuth } from './AuthContext';
 
 export type FeedTab = 'foryou' | 'explore' | 'following' | 'trending';
@@ -32,9 +32,9 @@ interface AppContextType {
   toggleBookmark: (postId: string) => void;
   toggleFollow: (targetUserId: string) => boolean;
   isFollowing: (targetUserId: string) => boolean;
-  addPost: (data: Omit<Post, 'PostID' | 'CreatedAt' | 'likesCount' | 'commentsCount'>) => Post;
-  addComment: (postId: string, text: string) => Comment;
-  getComments: (postId: string) => Comment[];
+  addPost: (data: Omit<Post, 'PostID' | 'CreatedAt' | 'likesCount' | 'commentsCount'>) => Promise<Post>;
+  addComment: (postId: string, text: string) => Promise<Comment>;
+  getComments: (postId: string) => Promise<Comment[]>;
   resetAllData: () => void;
 }
 
@@ -56,6 +56,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     enabled: false,
     webAppUrl: ''
   });
+  const [suggestedAccounts, setSuggestedAccounts] = useState<User[]>([]);
 
   const trendingTopics = [
     '#SpringBreak',
@@ -65,26 +66,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     '#TravelPhotography'
   ];
 
-  const refreshFeed = useCallback(() => {
-    const loadedPosts = api.getPosts(currentUser?.UserID);
-    setPosts(loadedPosts);
-    if (currentUser) {
-      setNotifications(api.getNotifications(currentUser.UserID));
-      setFollowingIds(api.getFollowing(currentUser.UserID));
-    } else {
-      setNotifications([]);
-      setFollowingIds([]);
-    }
+  // Subscribe to posts
+  useEffect(() => {
+    const unsubscribe = firestore.subscribeToPosts(currentUser?.UserID, (loadedPosts) => {
+      setPosts(loadedPosts);
+    });
+    
+    return () => unsubscribe();
   }, [currentUser]);
 
+  // Subscribe to notifications
   useEffect(() => {
-    setAppsScriptConfig(api.getConfig());
-    refreshFeed();
-  }, [refreshFeed]);
+    if (!currentUser) {
+      setNotifications([]);
+      return;
+    }
+    
+    const unsubscribe = firestore.subscribeToNotifications(currentUser.UserID, (notifs) => {
+      setNotifications(notifs);
+    });
+    
+    return () => unsubscribe();
+  }, [currentUser]);
 
-  // Suggested accounts (exclude current user)
-  const allUsers = api.getUsers();
-  const suggestedAccounts = allUsers.filter(u => u.UserID !== currentUser?.UserID).slice(0, 5);
+  // Subscribe to following list
+  useEffect(() => {
+    if (!currentUser) {
+      setFollowingIds([]);
+      return;
+    }
+    
+    const loadFollowing = async () => {
+      const following = await firestore.getFollowing(currentUser.UserID);
+      setFollowingIds(following);
+    };
+    loadFollowing();
+  }, [currentUser]);
+
+  // Load suggested accounts
+  useEffect(() => {
+    const loadSuggestions = async () => {
+      const allUsers = await firestore.getAllUsers();
+      const suggestions = allUsers.filter(u => u.UserID !== currentUser?.UserID).slice(0, 5);
+      setSuggestedAccounts(suggestions);
+    };
+    loadSuggestions();
+  }, [currentUser]);
 
   // Filter posts based on activeTab, searchQuery, and selectedHashtag
   const filteredPosts = posts.filter(post => {
@@ -110,47 +137,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true; // foryou & explore
   });
 
-  const toggleLike = (postId: string) => {
+  const refreshFeed = useCallback(() => {
+    // Posts are updated via subscription, no manual refresh needed
+  }, []);
+
+  const toggleLike = async (postId: string) => {
     if (!currentUser) return;
-    api.toggleLike(postId, currentUser.UserID);
-    refreshFeed();
-    if (activeCommentPost?.PostID === postId) {
-      setActiveCommentPost(prev => prev ? { ...prev, likesCount: prev.likesCount + (prev.isLikedByMe ? -1 : 1), isLikedByMe: !prev.isLikedByMe } : null);
-    }
+    await firestore.toggleLike(postId, currentUser.UserID);
+    // Posts will update via subscription
   };
 
-  const toggleBookmark = (postId: string) => {
+  const toggleBookmark = async (postId: string) => {
     if (!currentUser) return;
-    api.toggleBookmark(postId, currentUser.UserID);
-    refreshFeed();
+    await firestore.toggleBookmark(postId, currentUser.UserID);
+    // Posts will update via subscription
   };
 
-  const toggleFollow = (targetUserId: string): boolean => {
+  const toggleFollow = async (targetUserId: string): Promise<boolean> => {
     if (!currentUser) return false;
-    const res = api.toggleFollow(currentUser.UserID, targetUserId);
-    refreshFeed();
-    return res;
+    const result = await firestore.toggleFollow(currentUser.UserID, targetUserId);
+    // Update following list
+    const following = await firestore.getFollowing(currentUser.UserID);
+    setFollowingIds(following);
+    return result;
   };
 
   const isFollowing = (targetUserId: string): boolean => {
     return followingIds.includes(targetUserId);
   };
 
-  const addPost = (data: Omit<Post, 'PostID' | 'CreatedAt' | 'likesCount' | 'commentsCount'>): Post => {
-    const newP = api.createPost(data);
-    refreshFeed();
-    return newP;
-  };
-
-  const addComment = (postId: string, text: string): Comment => {
+  const addPost = async (data: Omit<Post, 'PostID' | 'CreatedAt' | 'likesCount' | 'commentsCount'>): Promise<Post> => {
     if (!currentUser) throw new Error('Not logged in');
-    const cmt = api.addComment(postId, currentUser.UserID, text);
-    refreshFeed();
-    return cmt;
+    return await firestore.createPost({ ...data, UserID: currentUser.UserID });
   };
 
-  const getComments = (postId: string): Comment[] => {
-    return api.getComments(postId);
+  const addComment = async (postId: string, text: string): Promise<Comment> => {
+    if (!currentUser) throw new Error('Not logged in');
+    return await firestore.addComment(postId, currentUser.UserID, text);
+  };
+
+  const getComments = async (postId: string): Promise<Comment[]> => {
+    return await firestore.getComments(postId);
   };
 
   const openShareModal = (url: string) => {
@@ -159,13 +186,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateAppsScriptConfig = (cfg: AppsScriptConfig) => {
-    api.saveConfig(cfg);
     setAppsScriptConfig(cfg);
   };
 
   const resetAllData = () => {
-    api.resetDatabase();
-    refreshFeed();
+    console.warn('resetAllData is deprecated - Firestore data should be managed manually');
   };
 
   return (

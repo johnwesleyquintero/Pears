@@ -1,22 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api } from '../services/api';
+import { firestore } from '../services/firestore';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { Heart, MessageCircle, Calendar, Users, UserPlus, Check, Sparkles, Grid, Bookmark as BookmarkIcon, Edit3 } from 'lucide-react';
 import { PostCard } from '../components/feed/PostCard';
+import { User, Post } from '../types';
 
 export const ProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const { currentUser, updateCurrentUser, setLoginModalOpen } = useAuth();
   const { toggleFollow, isFollowing } = useApp();
-
+  
   const [activeTab, setActiveTab] = useState<'posts' | 'likes'>('posts');
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
+  const [targetUser, setTargetUser] = useState<User | null>(null);
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [likedPosts, setLikedPosts] = useState<Post[]>([]);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const targetUser = userId ? api.getUserById(userId) : currentUser;
+  // Subscribe to target user
+  useEffect(() => {
+    if (!userId) {
+      setTargetUser(currentUser);
+      setLoading(false);
+      return;
+    }
+    
+    const unsubscribe = firestore.subscribeToUser(userId, (user) => {
+      setTargetUser(user);
+      setLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, [userId, currentUser]);
+
+  // Subscribe to user's posts
+  useEffect(() => {
+    if (!userId && !currentUser) {
+      setUserPosts([]);
+      return;
+    }
+    
+    const targetId = userId || currentUser?.UserID;
+    if (!targetId) return;
+    
+    const loadPosts = async () => {
+      const posts = await firestore.getPostsByUser(targetId);
+      setUserPosts(posts);
+    };
+    loadPosts();
+  }, [userId, currentUser]);
+
+  // Subscribe to liked posts
+  useEffect(() => {
+    if (!userId && !currentUser) {
+      setLikedPosts([]);
+      return;
+    }
+    
+    const targetId = userId || currentUser?.UserID;
+    if (!targetId) return;
+    
+    const loadLikedPosts = async () => {
+      const posts = await firestore.getLikedPosts(targetId);
+      setLikedPosts(posts);
+    };
+    loadLikedPosts();
+  }, [userId, currentUser]);
+
+  // Subscribe to followers/following counts
+  useEffect(() => {
+    if (!targetUser) {
+      setFollowersCount(0);
+      setFollowingCount(0);
+      return;
+    }
+    
+    const loadCounts = async () => {
+      const followers = await firestore.getFollowers(targetUser.UserID);
+      const following = await firestore.getFollowing(targetUser.UserID);
+      setFollowersCount(followers.length);
+      setFollowingCount(following.length);
+    };
+    loadCounts();
+  }, [targetUser]);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lime-500"></div>
+        <p className="text-sm font-bold text-slate-400 mt-4">Loading profile...</p>
+      </div>
+    );
+  }
+
   if (!targetUser) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">
@@ -30,16 +112,6 @@ export const ProfilePage: React.FC = () => {
 
   const isMe = currentUser?.UserID === targetUser.UserID;
   const followed = isFollowing(targetUser.UserID);
-
-  const userPosts = api.getPosts(currentUser?.UserID).filter(p => p.UserID === targetUser.UserID);
-  const allPosts = api.getPosts(currentUser?.UserID);
-  const likes = localStorage.getItem('pears_sheets_likes');
-  const parsedLikes = likes ? JSON.parse(likes) : [];
-  const likedPostIds = parsedLikes.filter((l: any) => l.UserID === targetUser.UserID).map((l: any) => l.PostID);
-  const likedPosts = allPosts.filter(p => likedPostIds.includes(p.PostID));
-
-  const followersCount = api.getFollowers(targetUser.UserID).length;
-  const followingCount = api.getFollowing(targetUser.UserID).length;
 
   const handleStartEdit = () => {
     setEditName(targetUser.Name);
@@ -188,7 +260,7 @@ export const ProfilePage: React.FC = () => {
 
           <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-bold uppercase tracking-wider">
             <span>Joined {new Date(targetUser.JoinedAt).toLocaleDateString()}</span>
-            <span>Google Sheets UserID: {targetUser.UserID}</span>
+            <span>User ID: {targetUser.UserID}</span>
           </div>
         </div>
 

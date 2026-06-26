@@ -1,29 +1,50 @@
-```gitignore
+```
 # Dependencies
 node_modules/
 
 # Build outputs
 dist/
 build/
-target/
+*.js.map
+*.tsbuildinfo
 
-# Python
+# Environment variables
+.env
+.env.local
+*.env.*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Temporary files
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Python specific
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
-venv/
-.venv/
-.ENV
-.python-version
-.pytest_cache/
+*.so
+*.egg-info/
+.eggs/
 .mypy_cache/
-.coverage
+.pytest_cache/
 
-# Logs
-*.log
+# Node specific
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -36,34 +57,4 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Environment variables
-.env
-.env.local
-.env.*
-!.env.example
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Temporary files
-*.tmp
-*.temp
-```
-
-Wait, I need to reconsider this. The only modified file is `src/pages/SettingsPage.tsx`, which is a TypeScript React component file. This appears to be just a source code change without any build artifacts, dependencies, or temporary files in the change list.
-
-Since the change list contains only a source file (.tsx) and no build artifacts, dependencies, or temp files, the output should be empty.
-
-```gitignore
-
 ```
