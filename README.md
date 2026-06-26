@@ -1,7 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="Pears Banner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
-
 # Pears 🍐
 
 A modern, real-time social media platform built with React and Firebase. Pears enables users to share thoughts, interact with content, and build communities through a seamless, responsive interface.
