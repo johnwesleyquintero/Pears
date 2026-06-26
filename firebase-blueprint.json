@@ -1,50 +1,129 @@
 {
-  "databaseId": "(default)",
-  "entities": [
-    {
-      "name": "User",
-      "collectionPath": "users",
-      "documentId": "userId",
-      "fields": [
-        { "name": "UserID", "type": "string", "required": true },
-        { "name": "Username", "type": "string", "required": true },
-        { "name": "Name", "type": "string", "required": true },
-        { "name": "Avatar", "type": "string", "required": false },
-        { "name": "Bio", "type": "string", "required": false }
-      ]
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Creator profile stored in Firestore",
+      "type": "object",
+      "properties": {
+        "UserID": { "type": "string", "description": "Unique user ID matching document ID" },
+        "GoogleID": { "type": "string", "description": "Google authentication ID" },
+        "Name": { "type": "string", "description": "Full display name" },
+        "Username": { "type": "string", "description": "Unique handle" },
+        "Avatar": { "type": "string", "description": "Avatar image URL" },
+        "Bio": { "type": "string", "description": "Profile biography" },
+        "JoinedAt": { "type": "string", "format": "date-time", "description": "Registration timestamp" }
+      },
+      "required": ["UserID", "GoogleID", "Name", "Username", "JoinedAt"]
     },
-    {
-      "name": "Post",
-      "collectionPath": "posts",
-      "documentId": "postId",
-      "fields": [
-        { "name": "PostID", "type": "string", "required": true },
-        { "name": "AuthorID", "type": "string", "required": true },
-        { "name": "VideoURL", "type": "string", "required": true },
-        { "name": "ThumbnailURL", "type": "string", "required": false },
-        { "name": "Caption", "type": "string", "required": false }
-      ]
+    "Post": {
+      "title": "Post",
+      "description": "Social media video, image, or GIF post",
+      "type": "object",
+      "properties": {
+        "PostID": { "type": "string", "description": "Unique post ID matching document ID" },
+        "UserID": { "type": "string", "description": "Author UID reference" },
+        "MediaType": { "type": "string", "enum": ["image", "video", "gif"], "description": "Type of media content" },
+        "MediaURL": { "type": "string", "description": "URL to media file" },
+        "ThumbnailURL": { "type": "string", "description": "Optional thumbnail for video" },
+        "Caption": { "type": "string", "description": "Post text caption" },
+        "Visibility": { "type": "string", "enum": ["public", "followers", "private"], "description": "Access control setting" },
+        "CreatedAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "likesCount": { "type": "number", "description": "Cached total likes count" },
+        "commentsCount": { "type": "number", "description": "Cached total comments count" }
+      },
+      "required": ["PostID", "UserID", "MediaType", "MediaURL", "Caption", "Visibility", "CreatedAt"]
     },
-    {
-      "name": "Like",
-      "collectionPath": "likes",
-      "documentId": "likeId",
-      "fields": [
-        { "name": "LikeID", "type": "string", "required": true },
-        { "name": "UserID", "type": "string", "required": true },
-        { "name": "PostID", "type": "string", "required": true }
-      ]
+    "Like": {
+      "title": "Like",
+      "description": "User like interaction on a post",
+      "type": "object",
+      "properties": {
+        "LikeID": { "type": "string", "description": "Unique like interaction ID" },
+        "PostID": { "type": "string", "description": "Target post ID" },
+        "UserID": { "type": "string", "description": "Actor user ID" },
+        "CreatedAt": { "type": "string", "format": "date-time", "description": "Interaction timestamp" }
+      },
+      "required": ["LikeID", "PostID", "UserID", "CreatedAt"]
     },
-    {
-      "name": "Comment",
-      "collectionPath": "comments",
-      "documentId": "commentId",
-      "fields": [
-        { "name": "CommentID", "type": "string", "required": true },
-        { "name": "PostID", "type": "string", "required": true },
-        { "name": "AuthorID", "type": "string", "required": true },
-        { "name": "Comment", "type": "string", "required": true }
-      ]
+    "Comment": {
+      "title": "Comment",
+      "description": "User comment on a post",
+      "type": "object",
+      "properties": {
+        "CommentID": { "type": "string", "description": "Unique comment ID" },
+        "PostID": { "type": "string", "description": "Target post ID" },
+        "UserID": { "type": "string", "description": "Author UID reference" },
+        "Comment": { "type": "string", "description": "Comment text content" },
+        "CreatedAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["CommentID", "PostID", "UserID", "Comment", "CreatedAt"]
+    },
+    "Following": {
+      "title": "Following",
+      "description": "Social follower relationship",
+      "type": "object",
+      "properties": {
+        "UserID": { "type": "string", "description": "Follower UID" },
+        "FollowingID": { "type": "string", "description": "Target creator UID being followed" },
+        "CreatedAt": { "type": "string", "format": "date-time", "description": "Relationship timestamp" }
+      },
+      "required": ["UserID", "FollowingID", "CreatedAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Activity notification for recipient",
+      "type": "object",
+      "properties": {
+        "NotificationID": { "type": "string", "description": "Unique notification ID" },
+        "UserID": { "type": "string", "description": "Recipient user ID" },
+        "SenderID": { "type": "string", "description": "Actor user ID who triggered notification" },
+        "Type": { "type": "string", "enum": ["like", "comment", "follow"], "description": "Notification category" },
+        "ReferenceID": { "type": "string", "description": "Associated post or user ID" },
+        "CreatedAt": { "type": "string", "format": "date-time", "description": "Event timestamp" }
+      },
+      "required": ["NotificationID", "UserID", "SenderID", "Type", "ReferenceID", "CreatedAt"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "Saved post bookmark for user",
+      "type": "object",
+      "properties": {
+        "BookmarkID": { "type": "string", "description": "Unique bookmark ID" },
+        "PostID": { "type": "string", "description": "Target saved post ID" },
+        "UserID": { "type": "string", "description": "Owner user ID" },
+        "CreatedAt": { "type": "string", "format": "date-time", "description": "Save timestamp" }
+      },
+      "required": ["BookmarkID", "PostID", "UserID", "CreatedAt"]
     }
-  ]
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "Public user profiles collection"
+    },
+    "posts": {
+      "schema": "Post",
+      "description": "Social media feed posts"
+    },
+    "likes": {
+      "schema": "Like",
+      "description": "Like records for posts"
+    },
+    "comments": {
+      "schema": "Comment",
+      "description": "Comments on posts"
+    },
+    "following": {
+      "schema": "Following",
+      "description": "Follower-following relationship records"
+    },
+    "notifications": {
+      "schema": "Notification",
+      "description": "User notification stream"
+    },
+    "bookmarks": {
+      "schema": "Bookmark",
+      "description": "User saved bookmarks"
+    }
+  }
 }
