@@ -80,9 +80,7 @@ export const HomeFeed: React.FC = () => {
       <div className="w-full max-w-[480px] flex flex-col gap-8 pb-20">
         {filteredPosts.length === 0 ? (
           <div className="bg-white rounded-[40px] border border-slate-100 p-12 text-center shadow-sm space-y-4">
-            <div className="w-16 h-16 bg-lime-100 text-lime-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black">
-              🍐
-            </div>
+            <img src="/logo.png" alt="Pears" className="w-16 h-16 rounded-2xl mx-auto object-cover shadow-sm" />
             <h3 className="text-lg font-black text-slate-800">No content found</h3>
             <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
               {activeTab === 'following'

@@ -128,7 +128,8 @@ export const RightPanel: React.FC = () => {
       {/* Storage Architecture info */}
       <div className="bg-slate-900 text-slate-300 p-6 rounded-[32px] text-xs">
         <h4 className="font-bold text-white mb-2 flex items-center gap-1.5 text-lime-400">
-          <span>🍐 Modular Storage</span>
+          <img src="/logo.png" alt="logo" className="w-4 h-4 rounded object-cover" />
+          <span>Modular Storage</span>
         </h4>
         <p className="text-[11px] leading-relaxed text-slate-400">
           Supports URLs from Google Drive, TeraBox, Giphy, Cloudinary, or any CDN. Only raw URLs are persisted in Sheets.

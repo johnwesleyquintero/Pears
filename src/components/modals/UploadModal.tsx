@@ -78,9 +78,7 @@ export const UploadModal: React.FC = () => {
         {/* Modal Header */}
         <div className="h-16 border-b border-slate-100 flex items-center justify-between px-8 bg-white shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-lime-500 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-xs">
-              P
-            </div>
+            <img src="/logo.png" alt="Pears" className="w-8 h-8 rounded-lg object-cover shadow-xs" />
             <h3 className="font-black text-slate-800 text-lg">Create New Post</h3>
           </div>
           <button

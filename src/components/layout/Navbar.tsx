@@ -15,13 +15,12 @@ export const Navbar: React.FC = () => {
     <nav className="h-16 border-b border-slate-100 flex items-center justify-between px-8 bg-white z-20 shrink-0 shadow-xs">
       {/* Brand */}
       <Link to="/" className="flex items-center gap-2.5 group">
-        <div className="w-10 h-10 bg-lime-500 group-hover:bg-lime-600 transition-colors rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-xs">
-          P
-        </div>
+        <img
+          src="/logo.png"
+          alt="Pears Logo"
+          className="w-10 h-10 rounded-xl object-cover group-hover:scale-105 transition-transform shadow-xs"
+        />
         <span className="text-2xl font-black tracking-tight text-slate-800">Pears</span>
-        <span className="text-[10px] bg-lime-100 text-lime-800 font-bold px-1.5 py-0.5 rounded-md ml-0.5 uppercase tracking-wider">
-          MVP
-        </span>
       </Link>
 
       {/* Search Bar */}

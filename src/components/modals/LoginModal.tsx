@@ -29,9 +29,7 @@ export const LoginModal: React.FC = () => {
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-lime-600 font-black text-3xl shadow-lg mb-4">
-            P
-          </div>
+          <img src="/logo.png" alt="Pears Logo" className="w-14 h-14 bg-white rounded-2xl object-cover shadow-lg mb-4 border-2 border-white" />
           <h2 className="text-2xl font-black tracking-tight">Sign in to Pears</h2>
           <p className="text-white/90 text-xs mt-1 leading-relaxed">
             Lightweight social media platform powered by React + Google Sheets API.
