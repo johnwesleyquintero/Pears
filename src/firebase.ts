@@ -19,5 +19,5 @@ if (!firebaseConfig.apiKey) {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, "ai-studio-pears-9074927d-fec4-4f20-91fd-b91a8d52f5bd");
+export const db = getFirestore(app); // Use default database
 export const googleProvider = new GoogleAuthProvider();

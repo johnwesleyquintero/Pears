@@ -4,6 +4,11 @@ service cloud.firestore {
     
     function isSignedIn() { return request.auth != null; }
     
+    // Helper function to check if user is the author of a post
+    function isPostAuthor(postId) {
+      return get(/databases/$(database)/documents/posts/$(postId)).data.UserID == request.auth.uid;
+    }
+    
     // Users collection - readable by all, writable only by owner
     match /users/{userId} {
       allow read: if true;
@@ -17,7 +22,7 @@ service cloud.firestore {
     match /posts/{postId} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && get(/databases/$(database)/documents/posts/$(postId)).data.UserID == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.UserID == request.auth.uid;
     }
     
     // Likes collection - readable by all, create/delete by signed-in users
@@ -28,12 +33,12 @@ service cloud.firestore {
     }
     
     // Comments collection - readable by all, creatable by signed-in users,
-    // delete only by author
+    // delete only by author or post owner
     match /comments/{commentId} {
       allow read: if true;
       allow create: if isSignedIn() && request.resource.data.UserID == request.auth.uid;
       allow delete: if isSignedIn() && (resource.data.UserID == request.auth.uid || 
-        get(/databases/$(database)/documents/posts/$(resource.data.PostID)).data.UserID == request.auth.uid);
+        isPostAuthor(resource.data.PostID));
     }
     
     // Following collection - manage follow relationships
@@ -45,14 +50,14 @@ service cloud.firestore {
     
     // Notifications collection - readable only by recipient
     match /notifications/{notificationId} {
-      allow read: if isSignedIn() && resource.data.UserID == request.auth.uid;
+      allow read: if isSignedIn() && (resource == null || resource.data.UserID == request.auth.uid);
       allow create: if isSignedIn();
       allow delete: if isSignedIn() && resource.data.UserID == request.auth.uid;
     }
     
     // Bookmarks collection - private to user
     match /bookmarks/{bookmarkId} {
-      allow read: if isSignedIn() && resource.data.UserID == request.auth.uid;
+      allow read: if isSignedIn() && (resource == null || resource.data.UserID == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.UserID == request.auth.uid;
       allow delete: if isSignedIn() && resource.data.UserID == request.auth.uid;
     }
